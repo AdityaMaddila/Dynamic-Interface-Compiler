@@ -1,28 +1,38 @@
 import React from 'react';
-import { Play } from 'lucide-react';
+import { Code } from 'lucide-react';
 
-const JsonEditor = ({ jsonInput, setJsonInput, applySchema }) => {
-  const handleApply = () => {
-    try {
-      const parsed = JSON.parse(jsonInput);
-      applySchema(parsed);
-    } catch (err) {
-      alert('Invalid JSON: ' + err.message);
-    }
-  };
-
+const JsonEditor = ({ jsonInput, setJsonInput, isValid, componentCount, onClearAll }) => {
   return (
-    <div className="p-4 space-y-4">
-      <label className="text-sm font-medium text-gray-700">JSON Schema Editor</label>
-      <textarea
-        value={jsonInput}
-        onChange={(e) => setJsonInput(e.target.value)}
-        className="w-full h-96 p-3 border border-gray-300 rounded-md font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        placeholder="Enter your JSON schema here..."
-      />
-      <button onClick={handleApply} className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">
-        <Play size={16} /> Apply & Render
-      </button>
+    <div className="h-full flex flex-col">
+      <div className="flex items-center justify-between p-4 border-b border-gray-700">
+        <h3 className="text-lg font-semibold text-white flex items-center">
+          <Code className="mr-2" size={20} />
+          JSON Schema ({componentCount} components)
+        </h3>
+        <div className="flex items-center space-x-2">
+          <div className={`px-2 py-1 rounded text-xs font-medium ${
+            isValid ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'
+          }`}>
+            {isValid ? 'Valid JSON' : 'Invalid JSON'}
+          </div>
+          {componentCount > 0 && (
+            <button
+              onClick={onClearAll}
+              className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
+            >
+              Clear All
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="flex-1 p-4">
+        <textarea
+          value={jsonInput}
+          onChange={(e) => setJsonInput(e.target.value)}
+          className="w-full h-full bg-gray-900 text-gray-300 font-mono text-sm p-4 rounded border border-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+          placeholder="Your JSON schema array will appear here..."
+        />
+      </div>
     </div>
   );
 };

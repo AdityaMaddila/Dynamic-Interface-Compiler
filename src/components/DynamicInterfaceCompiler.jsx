@@ -1,91 +1,160 @@
 import React, { useState, useCallback } from 'react';
-import SchemaManager from './SchemaManager';
+import Header from './Header';
+import ComponentPalette from './ComponentPalette';
 import JsonEditor from './JsonEditor';
-import TemplatePanel from './TemplatePanel';
 import LivePreview from './LivePreview';
-import Footer from './Footer';
+import ComponentLibrary from '../library/ComponentLibrary'; // Assuming this is where your components are defined
 import { defaultTemplates } from '../utils/defaultTemplates';
-import ComponentLibrary from '../library/ComponentLibrary'; // Assuming you have a component library for rendering schemas
-
-
 const DynamicInterfaceCompiler = () => {
-  const [schemas, setSchemas] = useState([
-    {
-      id: 'demo-form',
-      name: 'Demo Form',
-      schema: defaultTemplates.form,
-    },
-  ]);
-  const [currentSchema, setCurrentSchema] = useState(schemas[0]);
-  const [jsonInput, setJsonInput] = useState(JSON.stringify(schemas[0].schema, null, 2));
-  const [activeTab, setActiveTab] = useState('editor');
-  const [renderKey, setRenderKey] = useState(0);
+  const [components, setComponents] = useState([]);
+  const [jsonInput, setJsonInput] = useState('[]');
+  const [draggedComponent, setDraggedComponent] = useState(null);
+  const [isJsonValid, setIsJsonValid] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  const renderComponent = useCallback((schema) => {
+  const renderComponent = useCallback((schema, index) => {
     const Component = ComponentLibrary[schema.type];
-    if (!Component) return <div>Unknown component type</div>;
-    return <Component schema={schema} key={renderKey} />;
-  }, [renderKey]);
+    if (!Component) return <div className="text-red-400">Unknown component type: {schema.type}</div>;
+    return <Component schema={schema} key={index} />;
+  }, []);
 
-  const applySchema = (parsedSchema) => {
-    const updated = schemas.map(s => s.id === currentSchema.id ? { ...s, schema: parsedSchema } : s);
-    setSchemas(updated);
-    setCurrentSchema(prev => ({ ...prev, schema: parsedSchema }));
-    setRenderKey(prev => prev + 1);
+  const handleDragStart = (componentType) => {
+    setDraggedComponent(componentType);
   };
 
+  const handleDrop = (e) => {
+    e.preventDefault();
+    if (draggedComponent && defaultTemplates[draggedComponent]) {
+      const newSchema = { 
+        ...defaultTemplates[draggedComponent],
+        id: `${draggedComponent}_${Date.now()}`
+      };
+      const updatedComponents = [...components, newSchema];
+      setComponents(updatedComponents);
+      setJsonInput(JSON.stringify(updatedComponents, null, 2));
+      setIsJsonValid(true);
+    }
+    setDraggedComponent(null);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+  };
+
+  const handleRemoveComponent = (index) => {
+    const updatedComponents = components.filter((_, i) => i !== index);
+    setComponents(updatedComponents);
+    setJsonInput(JSON.stringify(updatedComponents, null, 2));
+  };
+
+  const handleClearAll = () => {
+    setComponents([]);
+    setJsonInput('[]');
+    setIsJsonValid(true);
+  };
+
+  // Update components when JSON changes
+  React.useEffect(() => {
+    try {
+      if (jsonInput.trim()) {
+        const parsed = JSON.parse(jsonInput);
+        if (Array.isArray(parsed)) {
+          setComponents(parsed);
+          setIsJsonValid(true);
+        } else {
+          // If it's a single object, wrap it in an array
+          setComponents([parsed]);
+          setIsJsonValid(true);
+        }
+      } else {
+        setComponents([]);
+        setIsJsonValid(true);
+      }
+    } catch (error) {
+      setIsJsonValid(false);
+    }
+  }, [jsonInput]);
+
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-7xl mx-auto">
-        <div className="bg-white p-6 mb-6 rounded-lg shadow-sm">
-          <h1 className="text-3xl font-bold">🧪 Dynamic Interface Compiler</h1>
-          <p className="text-gray-600">Build UI components from JSON schemas</p>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
+      <Header sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+
+      <div className="flex h-[calc(100vh-80px)]">
+        {/* Sidebar */}
+        <div className={`${sidebarOpen ? 'w-80' : 'w-0'} lg:w-80 bg-gray-800 border-r border-gray-700 transition-all duration-300 overflow-hidden flex-shrink-0`}>
+          <div className="p-6 h-full overflow-y-auto">
+            <ComponentPalette onDragStart={handleDragStart} />
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white rounded-lg shadow-md">
-            <SchemaManager
-              schemas={schemas}
-              setSchemas={setSchemas}
-              currentSchema={currentSchema}
-              setCurrentSchema={setCurrentSchema}
+        {/* Main Content */}
+        <div className="flex-1 flex flex-col lg:flex-row">
+          {/* JSON Editor */}
+          <div className="w-full lg:w-1/2 bg-gray-800 border-r border-gray-700 flex flex-col">
+            <JsonEditor 
+              jsonInput={jsonInput} 
               setJsonInput={setJsonInput}
+              isValid={isJsonValid}
+              componentCount={components.length}
+              onClearAll={handleClearAll}
             />
-
-            <div className="border-b border-gray-200">
-              <nav className="flex">
-                {['editor', 'templates'].map(tab => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`px-4 py-2 text-sm font-medium capitalize ${
-                      activeTab === tab
-                        ? 'border-b-2 border-blue-500 text-blue-600'
-                        : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                  >
-                    {tab}
-                  </button>
-                ))}
-              </nav>
-            </div>
-
-            {activeTab === 'editor' ? (
-              <JsonEditor
-                jsonInput={jsonInput}
-                setJsonInput={setJsonInput}
-                applySchema={applySchema}
-              />
-            ) : (
-              <TemplatePanel setJsonInput={setJsonInput} />
-            )}
           </div>
 
-          <LivePreview schema={currentSchema.schema} renderComponent={renderComponent} />
+          {/* Live Preview */}
+          <div className="w-full lg:w-1/2 bg-gray-900 flex flex-col">
+            <LivePreview 
+              components={components}
+              renderComponent={renderComponent}
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onRemoveComponent={handleRemoveComponent}
+            />
+          </div>
         </div>
-
-        <Footer />
       </div>
+
+      {/* Custom Styles for Animations */}
+      <style jsx>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .animate-fadeIn {
+          animation: fadeIn 0.3s ease-out;
+        }
+
+        .bg-gray-750 {
+          background-color: #374151;
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+          width: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+          background: #1f2937;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+          background: #4b5563;
+          border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+          background: #6b7280;
+        }
+
+        /* Custom drag cursor */
+        [draggable="true"] {
+          cursor: grab;
+        }
+        
+        [draggable="true"]:active {
+          cursor: grabbing;
+        }
+      `}</style>
     </div>
   );
 };
