@@ -33,7 +33,6 @@ const ComponentPalette = ({ onDragStart }) => {
       components: [
         { type: 'button', icon: Square, name: 'Button', color: 'text-emerald-400' },
         { type: 'alert', icon: AlertCircle, name: 'Alert', color: 'text-red-400' },
-        { type: 'modal', icon: Square, name: 'Modal', color: 'text-violet-400' },
         { type: 'tabs', icon: MoreHorizontal, name: 'Tabs', color: 'text-teal-400' },
         { type: 'breadcrumb', icon: MoreHorizontal, name: 'Breadcrumb', color: 'text-slate-400' },
         { type: 'badge', icon: Star, name: 'Badge', color: 'text-amber-400' }
