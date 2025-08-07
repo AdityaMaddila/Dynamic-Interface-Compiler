@@ -7,7 +7,31 @@ export const defaultTemplates = {
       { type: 'text', label: 'Email', required: true },
       { type: 'select', label: 'Subject', options: ['General', 'Support', 'Sales'] },
       { type: 'textarea', label: 'Message', required: true }
-    ]
+    ],
+    onSubmit: {
+      validation: [
+        {
+          field: 'Name',
+          rule: 'minLength',
+          value: 2,
+          message: 'Name must be at least 2 characters long'
+        },
+        {
+          field: 'Email',
+          rule: 'email',
+          message: 'Please enter a valid email address'
+        },
+        {
+          field: 'Message',
+          rule: 'maxLength',
+          value: 500,
+          message: 'Message cannot exceed 500 characters'
+        }
+      ],
+      action: 'showAlert',
+      successMessage: 'Form submitted successfully!',
+      errorMessage: 'Please fix the errors above'
+    }
   },
   
   button: {
@@ -55,7 +79,7 @@ export const defaultTemplates = {
   input: {
     type: 'input',
     label: 'Email Address',
-    type: 'email',
+    inputType: 'email',
     placeholder: 'Enter your email...',
     helper: 'We\'ll never share your email with anyone else.'
   },
@@ -88,7 +112,7 @@ export const defaultTemplates = {
 
   alert: {
     type: 'alert',
-    type: 'success',
+    variant: 'success',
     title: 'Success!',
     message: 'Your changes have been saved successfully.'
   },

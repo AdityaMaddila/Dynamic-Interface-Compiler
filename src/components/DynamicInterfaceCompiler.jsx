@@ -15,24 +15,50 @@ const DynamicInterfaceCompiler = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [layoutMode, setLayoutMode] = useState('list');
 
+  // Fixed renderComponent function with proper error handling
   const renderComponent = useCallback((schema, index) => {
+    // Add validation
+    if (!schema || !schema.type) {
+      console.error('Invalid schema:', schema);
+      return <div className="text-red-400 p-2 text-xs">Invalid component schema</div>;
+    }
+    
     const Component = ComponentLibrary[schema.type];
-    if (!Component) return <div className="text-red-400 text-xs p-2">Unknown: {schema.type}</div>;
-    return <Component schema={schema} key={index} />;
+    if (!Component) {
+      console.error('Unknown component type:', schema.type);
+      return <div className="text-red-400 text-xs p-2">Unknown: {schema.type}</div>;
+    }
+    
+    try {
+      return <Component key={index} schema={schema} />;
+    } catch (error) {
+      console.error('Error rendering component:', error);
+      return <div className="text-red-400 p-2 text-xs">Error rendering component</div>;
+    }
   }, []);
 
   const handleDragStart = (componentType) => {
     setDraggedComponent(componentType);
   };
 
+  // Fixed handleDrop function with proper template cloning
   const handleDrop = (e, rowIndex = null, colIndex = null) => {
     e.preventDefault();
     
     if (draggedComponent && defaultTemplates[draggedComponent]) {
+      // Clone the template to avoid reference issues
+      const template = defaultTemplates[draggedComponent];
       const newSchema = { 
-        ...defaultTemplates[draggedComponent],
+        ...template,
         id: `${draggedComponent}_${Date.now()}`
       };
+
+      // Ensure the schema has a valid type
+      if (!newSchema.type) {
+        console.error('Template missing type:', template);
+        setDraggedComponent(null);
+        return;
+      }
 
       if (layoutMode === 'grid' && rowIndex !== null && colIndex !== null) {
         const cellId = `${rowIndex}-${colIndex}`;
@@ -108,31 +134,78 @@ const DynamicInterfaceCompiler = () => {
     }
   };
 
-  // Update components when JSON changes
+  // Update components when JSON changes with better validation
   React.useEffect(() => {
     try {
       if (jsonInput.trim()) {
         const parsed = JSON.parse(jsonInput);
         
         if (parsed.layout === 'grid' && parsed.components && typeof parsed.components === 'object') {
-          setGridComponents(parsed.components);
+          // Validate each component in grid
+          const validatedComponents = {};
+          Object.keys(parsed.components).forEach(key => {
+            const component = parsed.components[key];
+            if (component && component.type && ComponentLibrary[component.type]) {
+              validatedComponents[key] = component;
+            } else {
+              console.warn('Invalid component in grid:', component);
+            }
+          });
+          
+          setGridComponents(validatedComponents);
           setLayoutMode('grid');
           setIsJsonValid(true);
         } else if (parsed.layout === 'list' && Array.isArray(parsed.components)) {
-          setComponents(parsed.components);
+          // Validate each component in list
+          const validatedComponents = parsed.components.filter(component => {
+            if (component && component.type && ComponentLibrary[component.type]) {
+              return true;
+            } else {
+              console.warn('Invalid component in list:', component);
+              return false;
+            }
+          });
+          
+          setComponents(validatedComponents);
           setLayoutMode('list');
           setIsJsonValid(true);
         } else if (Array.isArray(parsed)) {
-          // Backward compatibility
-          setComponents(parsed);
+          // Backward compatibility - validate array
+          const validatedComponents = parsed.filter(component => {
+            if (component && component.type && ComponentLibrary[component.type]) {
+              return true;
+            } else {
+              console.warn('Invalid component:', component);
+              return false;
+            }
+          });
+          
+          setComponents(validatedComponents);
           setLayoutMode('list');
           setIsJsonValid(true);
         } else if (parsed.components) {
           if (Array.isArray(parsed.components)) {
-            setComponents(parsed.components);
+            const validatedComponents = parsed.components.filter(component => {
+              if (component && component.type && ComponentLibrary[component.type]) {
+                return true;
+              } else {
+                console.warn('Invalid component:', component);
+                return false;
+              }
+            });
+            setComponents(validatedComponents);
             setLayoutMode('list');
           } else {
-            setGridComponents(parsed.components);
+            const validatedComponents = {};
+            Object.keys(parsed.components).forEach(key => {
+              const component = parsed.components[key];
+              if (component && component.type && ComponentLibrary[component.type]) {
+                validatedComponents[key] = component;
+              } else {
+                console.warn('Invalid component:', component);
+              }
+            });
+            setGridComponents(validatedComponents);
             setLayoutMode('grid');
           }
           setIsJsonValid(true);
@@ -143,6 +216,7 @@ const DynamicInterfaceCompiler = () => {
         setIsJsonValid(true);
       }
     } catch (error) {
+      console.error('JSON parsing error:', error);
       setIsJsonValid(false);
     }
   }, [jsonInput]);
