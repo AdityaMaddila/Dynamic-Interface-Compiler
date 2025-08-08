@@ -432,6 +432,7 @@ src/
 |   └── Footer.jsx                    # App Footer
 |   └── SchemaManager.jsx             # Schema Panel Features
 |   └── TemplatePanel.jsx             #Contains various Components to drag and drop
+|   └── ValdiationHelperPopup.jsx     #Contains various rules and methods available
 ├── library/
 │   └── ComponentLibrary.js           # 15+ UI components
 └── utils/
