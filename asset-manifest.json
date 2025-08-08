@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/Dynamic-Interface-Compiler/static/css/main.5f536682.css",
+    "main.js": "/Dynamic-Interface-Compiler/static/js/main.5be1e624.js",
+    "index.html": "/Dynamic-Interface-Compiler/index.html",
+    "main.5f536682.css.map": "/Dynamic-Interface-Compiler/static/css/main.5f536682.css.map",
+    "main.5be1e624.js.map": "/Dynamic-Interface-Compiler/static/js/main.5be1e624.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.5f536682.css",
+    "static/js/main.5be1e624.js"
+  ]
+}
