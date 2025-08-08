@@ -3,7 +3,7 @@ import {
   Palette, Grid, Edit3, Layers, Move, Navigation, 
   Menu, Square, Type, List, CheckSquare, Circle,
   AlertCircle, MoreHorizontal, Activity, Star,
-  BarChart, Folder, Layout, FileText, Table
+  BarChart, Folder, Layout, FileText, Table, ImageIcon // Use ImageIcon instead
 } from 'lucide-react';
 
 const ComponentPalette = ({ onDragStart }) => {
@@ -44,7 +44,8 @@ const ComponentPalette = ({ onDragStart }) => {
         { type: 'table', icon: Table, name: 'Table', color: 'text-blue-400' },
         { type: 'list', icon: List, name: 'List', color: 'text-green-400' },
         { type: 'chart', icon: BarChart, name: 'Chart', color: 'text-purple-400' },
-        { type: 'progress', icon: Activity, name: 'Progress', color: 'text-orange-400' }
+        { type: 'progress', icon: Activity, name: 'Progress', color: 'text-orange-400' },
+        { type: 'image', icon: ImageIcon, name: 'Image', color: 'text-violet-400' } // Fixed this line
       ]
     }
   ];

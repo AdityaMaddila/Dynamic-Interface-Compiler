@@ -533,6 +533,119 @@ const GridComponent = ({ schema }) => (
   </div>
 );
 
+//image component 
+// Image Component
+const ImageComponent = ({ schema }) => {
+  const [imageError, setImageError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const handleImageLoad = () => {
+    setIsLoading(false);
+    setImageError(false);
+  };
+
+  const handleImageError = () => {
+    setIsLoading(false);
+    setImageError(true);
+  };
+
+  return (
+    <div className={`${schema.containerClass || ''}`}>
+      {schema.title && (
+        <h3 className="text-lg font-semibold text-white mb-2">{schema.title}</h3>
+      )}
+      
+      <div 
+        className={`relative overflow-hidden rounded-lg ${schema.rounded ? 'rounded-full' : 'rounded-lg'}`}
+        style={{ 
+          width: schema.width || 'auto', 
+          height: schema.height || 'auto',
+          aspectRatio: schema.aspectRatio || 'auto'
+        }}
+      >
+        {/* Loading State */}
+        {isLoading && (
+          <div className="absolute inset-0 bg-gray-700 animate-pulse flex items-center justify-center">
+            <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        )}
+        
+        {/* Error State */}
+        {imageError && !isLoading && (
+          <div className="bg-gray-700 flex items-center justify-center text-gray-400 min-h-[200px]">
+            <div className="text-center">
+              <div className="w-12 h-12 mx-auto mb-2 bg-gray-600 rounded flex items-center justify-center">
+                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <p className="text-sm">Image not found</p>
+              <p className="text-xs text-gray-500 mt-1">
+                {schema.alt || 'Failed to load image'}
+              </p>
+            </div>
+          </div>
+        )}
+        
+        {/* Actual Image */}
+        {schema.src && (
+          <img
+            src={schema.src}
+            alt={schema.alt || 'Image'}
+            className={`${imageError ? 'hidden' : 'block'} w-full h-full object-${schema.fit || 'cover'} transition-transform duration-200 ${
+              schema.hover ? 'hover:scale-105' : ''
+            }`}
+            onLoad={handleImageLoad}
+            onError={handleImageError}
+            loading={schema.lazy ? 'lazy' : 'eager'}
+          />
+        )}
+        
+        {/* Overlay */}
+        {schema.overlay && (
+          <div className={`absolute inset-0 ${schema.overlay} flex items-center justify-center`}>
+            {schema.overlayText && (
+              <span className="text-white text-lg font-semibold">{schema.overlayText}</span>
+            )}
+          </div>
+        )}
+        
+        {/* Click handler */}
+        {schema.clickable && (
+          <div 
+            className="absolute inset-0 cursor-pointer hover:bg-black hover:bg-opacity-20 transition-colors"
+            onClick={() => {
+              if (schema.onClick) {
+                // Handle click action
+                if (schema.onClick === 'lightbox') {
+                  // Simple lightbox simulation
+                  const lightbox = window.open('', '_blank', 'width=800,height=600');
+                  lightbox.document.write(`
+                    <html>
+                      <head><title>${schema.alt || 'Image'}</title></head>
+                      <body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;">
+                        <img src="${schema.src}" style="max-width:100%;max-height:100%;" alt="${schema.alt || 'Image'}" />
+                      </body>
+                    </html>
+                  `);
+                } else if (schema.onClick.startsWith('http')) {
+                  window.open(schema.onClick, '_blank');
+                } else {
+                  alert(`Image clicked: ${schema.alt || 'Image'}`);
+                }
+              }
+            }}
+          />
+        )}
+      </div>
+      
+      {/* Caption */}
+      {schema.caption && (
+        <p className="mt-2 text-sm text-gray-400 text-center">{schema.caption}</p>
+      )}
+    </div>
+  );
+};
 // Component Library Object
 const ComponentLibrary = {
   form: FormComponent,
@@ -554,7 +667,8 @@ const ComponentLibrary = {
   progress: ProgressComponent,
   chart: ChartComponent,
   list: ListComponent,
-  grid: GridComponent
+  grid: GridComponent,
+  image: ImageComponent,
 };
 
 export default ComponentLibrary;

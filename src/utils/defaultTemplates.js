@@ -39,7 +39,21 @@ export const defaultTemplates = {
     text: 'Click Me',
     variant: 'primary'
   },
-  
+  image: {
+    type: 'image',
+    title: 'Sample Image',
+    src: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=300&fit=crop',
+    alt: 'Sample landscape image',
+    caption: 'A beautiful landscape photo from Unsplash',
+    width: 'auto',
+    height: '300px',
+    fit: 'cover',
+    rounded: false,
+    hover: true,
+    clickable: true,
+    onClick: 'lightbox',
+    lazy: true
+  },  
   card: {
     type: 'card',
     title: 'Feature Card',
