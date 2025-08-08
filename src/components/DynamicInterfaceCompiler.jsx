@@ -14,6 +14,7 @@ const DynamicInterfaceCompiler = () => {
   const [isJsonValid, setIsJsonValid] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [layoutMode, setLayoutMode] = useState('list');
+  const [theme, setTheme] = useState('dark');
 
   // Fixed renderComponent function with proper error handling
   const renderComponent = useCallback((schema, index) => {
@@ -34,6 +35,103 @@ const DynamicInterfaceCompiler = () => {
     } catch (error) {
       console.error('Error rendering component:', error);
       return <div className="text-red-400 p-2 text-xs">Error rendering component</div>;
+    }
+  }, []);
+
+  // Function to get current data for Header component
+  const getCurrentData = useCallback(() => {
+    try {
+      // Get the current parsed JSON data
+      let currentJsonData = null;
+      if (jsonInput.trim()) {
+        try {
+          currentJsonData = JSON.parse(jsonInput);
+        } catch (parseError) {
+          console.warn('Could not parse current JSON input:', parseError);
+        }
+      }
+
+      // Return comprehensive current state
+      return {
+        jsonContent: jsonInput,
+        currentJsonData: currentJsonData,
+        components: layoutMode === 'list' ? components : gridComponents,
+        layout: layoutMode,
+        componentCount: getComponentCount(),
+        isValid: isJsonValid,
+        metadata: {
+          totalComponents: getComponentCount(),
+          layoutMode: layoutMode,
+          lastModified: new Date().toISOString(),
+          validComponents: layoutMode === 'list' 
+            ? components.filter(comp => comp && comp.type && ComponentLibrary[comp.type]).length
+            : Object.values(gridComponents).filter(comp => comp && comp.type && ComponentLibrary[comp.type]).length
+        }
+      };
+    } catch (error) {
+      console.error('Error getting current data:', error);
+      return {
+        jsonContent: jsonInput,
+        currentJsonData: null,
+        components: layoutMode === 'list' ? components : gridComponents,
+        layout: layoutMode,
+        error: error.message
+      };
+    }
+  }, [jsonInput, components, gridComponents, layoutMode, isJsonValid]);
+
+  // Function to load saved data and restore application state
+  const loadSavedData = useCallback((savedProject) => {
+    try {
+      console.log('Loading saved project:', savedProject);
+
+      // Restore JSON content
+      if (savedProject.jsonContent) {
+        setJsonInput(savedProject.jsonContent);
+      }
+
+      // Restore layout mode
+      if (savedProject.layout) {
+        setLayoutMode(savedProject.layout);
+        localStorage.setItem('layoutMode', savedProject.layout);
+      }
+
+      // Restore components based on layout
+      if (savedProject.layout === 'grid') {
+        if (savedProject.components && typeof savedProject.components === 'object') {
+          setGridComponents(savedProject.components);
+        } else if (savedProject.currentJsonData && savedProject.currentJsonData.components) {
+          setGridComponents(savedProject.currentJsonData.components);
+        }
+        // Clear list components when switching to grid
+        setComponents([]);
+      } else {
+        // List layout
+        if (Array.isArray(savedProject.components)) {
+          setComponents(savedProject.components);
+        } else if (savedProject.currentJsonData && Array.isArray(savedProject.currentJsonData.components)) {
+          setComponents(savedProject.currentJsonData.components);
+        }
+        // Clear grid components when switching to list
+        setGridComponents({});
+      }
+
+      // Restore validity state
+      if (savedProject.hasOwnProperty('isValid')) {
+        setIsJsonValid(savedProject.isValid);
+      } else {
+        setIsJsonValid(true); // Default to valid
+      }
+
+      // Store in localStorage for persistence
+      localStorage.setItem('formComponents', JSON.stringify(savedProject.components || []));
+      localStorage.setItem('layoutMode', savedProject.layout || 'list');
+
+      console.log('Successfully loaded saved project:', savedProject.name || 'Untitled');
+      
+    } catch (error) {
+      console.error('Failed to load saved data:', error);
+      // Don't throw error, just log it and continue with current state
     }
   }, []);
 
@@ -134,6 +232,13 @@ const DynamicInterfaceCompiler = () => {
     }
   };
 
+  const handleThemeChange = (newTheme) => {
+    setTheme(newTheme);
+    // You can add additional theme-related logic here
+    // For example, updating CSS variables or localStorage
+    localStorage.setItem('appTheme', newTheme);
+  };
+
   // Update components when JSON changes with better validation
   React.useEffect(() => {
     try {
@@ -227,22 +332,50 @@ const DynamicInterfaceCompiler = () => {
       : components.length;
   };
 
+  // Get parsed JSON data for Header
+  const getParsedJsonData = useCallback(() => {
+    if (!jsonInput.trim() || !isJsonValid) return null;
+    
+    try {
+      return JSON.parse(jsonInput);
+    } catch (error) {
+      return null;
+    }
+  }, [jsonInput, isJsonValid]);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
-      <Header sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+    <div className={`min-h-screen ${theme === 'dark' 
+      ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white' 
+      : 'bg-gradient-to-br from-gray-100 via-white to-gray-50 text-gray-900'
+    }`}>
+      <Header 
+        sidebarOpen={sidebarOpen} 
+        setSidebarOpen={setSidebarOpen}
+        theme={theme}
+        onThemeChange={handleThemeChange}
+        // Pass current JSON editor data to Header
+        currentJsonData={getParsedJsonData()}
+        jsonEditorContent={jsonInput}
+        onGetCurrentData={getCurrentData}
+        onLoadSavedData={loadSavedData} // Add the load function
+      />
 
       <div className="flex h-[calc(100vh-80px)]">
         {/* Sidebar */}
-        <div className={`${sidebarOpen ? 'w-80' : 'w-0'} lg:w-80 bg-gray-800 border-r border-gray-700 transition-all duration-300 overflow-hidden flex-shrink-0`}>
+        <div className={`${sidebarOpen ? 'w-80' : 'w-0'} lg:w-80 ${
+          theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+        } border-r transition-all duration-300 overflow-hidden flex-shrink-0`}>
           <div className="p-6 h-full overflow-y-auto">
-            <ComponentPalette onDragStart={handleDragStart} />
+            <ComponentPalette onDragStart={handleDragStart} theme={theme} />
           </div>
         </div>
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col lg:flex-row">
           {/* JSON Editor */}
-          <div className="w-full lg:w-1/2 bg-gray-800 border-r border-gray-700 flex flex-col">
+          <div className={`w-full lg:w-1/2 ${
+            theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
+          } border-r flex flex-col`}>
             <JsonEditor 
               jsonInput={jsonInput} 
               setJsonInput={setJsonInput}
@@ -251,11 +384,14 @@ const DynamicInterfaceCompiler = () => {
               onClearAll={handleClearAll}
               layoutMode={layoutMode}
               onLayoutModeChange={handleLayoutModeChange}
+              theme={theme}
             />
           </div>
 
           {/* Live Preview */}
-          <div className="w-full lg:w-1/2 bg-gray-900 flex flex-col">
+          <div className={`w-full lg:w-1/2 ${
+            theme === 'dark' ? 'bg-gray-900' : 'bg-white'
+          } flex flex-col`}>
             <LivePreview 
               components={components}
               gridComponents={gridComponents}
@@ -265,8 +401,28 @@ const DynamicInterfaceCompiler = () => {
               onRemoveComponent={handleRemoveComponent}
               layoutMode={layoutMode}
               draggedComponent={draggedComponent}
+              theme={theme}
             />
           </div>
+        </div>
+      </div>
+
+      {/* JSON Data Status Indicator */}
+      <div className="fixed bottom-4 right-4 z-40">
+        <div className={`px-3 py-2 rounded-lg text-xs font-medium flex items-center space-x-2 ${
+          isJsonValid 
+            ? 'bg-green-600/20 border border-green-500/30 text-green-400' 
+            : 'bg-red-600/20 border border-red-500/30 text-red-400'
+        } backdrop-blur-sm`}>
+          <div className={`w-2 h-2 rounded-full ${
+            isJsonValid ? 'bg-green-400' : 'bg-red-400'
+          }`}></div>
+          <span>
+            {isJsonValid 
+              ? `${getComponentCount()} components • Ready to export`
+              : 'Invalid JSON • Check syntax'
+            }
+          </span>
         </div>
       </div>
 
@@ -294,16 +450,16 @@ const DynamicInterfaceCompiler = () => {
         }
         
         ::-webkit-scrollbar-track {
-          background: #1f2937;
+          background: ${theme === 'dark' ? '#1f2937' : '#f3f4f6'};
         }
         
         ::-webkit-scrollbar-thumb {
-          background: #4b5563;
+          background: ${theme === 'dark' ? '#4b5563' : '#d1d5db'};
           border-radius: 3px;
         }
         
         ::-webkit-scrollbar-thumb:hover {
-          background: #6b7280;
+          background: ${theme === 'dark' ? '#6b7280' : '#9ca3af'};
         }
 
         [draggable="true"] {
@@ -321,6 +477,11 @@ const DynamicInterfaceCompiler = () => {
         .drag-over {
           background: rgba(59, 130, 246, 0.1);
           border-color: #3b82f6;
+        }
+
+        /* Smooth transitions for theme changes */
+        * {
+          transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
         }
       `}</style>
     </div>
